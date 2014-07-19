@@ -1,16 +1,5 @@
 var socket = io.connect();
 
-socket.on('connect', function() { writeMessage('connect'); });
-
-socket.on('disconnect', function() { writeMessage('disconnect'); });
-
-socket.on('message', function(message) { writeMessage(message); });
-
-socket.on('update', function(data) {
-  drawCanvas(data);
-  window.onresize = function() { drawCanvas(data) };
-});
-
 document.onkeydown = function(event) {
   switch (event.keyCode) {
     case 37: socket.emit('turn', 2); break;
@@ -24,12 +13,46 @@ document.getElementById('start').onclick = function() { socket.emit('start'); };
 
 document.getElementById('reset').onclick = function() { socket.emit('reset'); };
 
-document.getElementById('form').onsubmit = function(event) {
+document.getElementById('config').onsubmit = function(event) {
   event.preventDefault();
-  var input = document.getElementById('input');
-  socket.emit('message', input.value);
-  input.value = '';
+  socket.emit('config', {
+    size: Number(document.getElementById('size').value),
+    waitTime: Number(document.getElementById('waitTime').value),
+    initialLength: Number(document.getElementById('initialLength').value),
+    lengthenRate: Number(document.getElementById('lengthenRate').value),
+    tail: document.getElementById('tail').checked
+  });
 };
+
+document.getElementById('cancel').onclick = function() { socket.emit('cancel'); };
+
+document.getElementById('default').onclick = function() { socket.emit('default'); };
+
+document.getElementById('chat').onsubmit = function(event) {
+  event.preventDefault();
+  var chatText = document.getElementById('chatText');
+  socket.emit('message', chatText.value);
+  chatText.value = '';
+};
+
+socket.on('connect', function() { writeMessage('connect'); });
+
+socket.on('disconnect', function() { writeMessage('disconnect'); });
+
+socket.on('config', function(settings) {
+  document.getElementById('size').value = settings.size;
+  document.getElementById('waitTime').value = settings.waitTime;
+  document.getElementById('initialLength').value = settings.initialLength;
+  document.getElementById('lengthenRate').value = settings.lengthenRate;
+  document.getElementById('tail').checked = settings.tail;
+});
+
+socket.on('message', function(message) { writeMessage(message); });
+
+socket.on('update', function(data) {
+  drawCanvas(data);
+  window.onresize = function() { drawCanvas(data) };
+});
 
 function writeMessage(message) {
   var stdout = document.getElementById('stdout');
