@@ -9,6 +9,50 @@ document.onkeydown = function(event) {
   }
 };
 
+var swipe = 30;
+var touches = {};
+window.ontouchstart = function(event) {
+  for (var i = 0; i < event.changedTouches.length; i++) {
+    var touch = event.changedTouches[i];
+    touches[touch.identifier] = {
+      x: touch.clientX,
+      y: touch.clientY
+    };
+  }
+};
+
+window.ontouchmove = function(event) {
+  event.preventDefault();
+  for (var i = 0; i < event.changedTouches.length; i++) {
+    var touch = event.changedTouches[i];
+    if (touch.clientX > touches[touch.identifier].x + swipe) {
+      socket.emit('turn', 0);
+      touches[touch.identifier].x += swipe;
+    }
+    if (touch.clientY > touches[touch.identifier].y + swipe) {
+      socket.emit('turn', 1);
+      touches[touch.identifier].y += swipe;
+    }
+    if (touch.clientX < touches[touch.identifier].x - swipe) {
+      socket.emit('turn', 2);
+      touches[touch.identifier].x -= swipe;
+    }
+    if (touch.clientY < touches[touch.identifier].y - swipe) {
+      socket.emit('turn', 3);
+      touches[touch.identifier].y -= swipe;
+    }
+  }
+};
+
+window.ontouchend = function(event) {
+  for (var i = 0; i < event.changedTouches.length; i++) {
+    var touch = event.changedTouches[i];
+    delete touches[touch.identifier];
+  }
+};
+
+window.ontouchcancel = window.ontouchend;
+
 document.getElementById('start').onclick = function() { socket.emit('start'); };
 
 document.getElementById('stop').onclick = function() { socket.emit('stop'); };
@@ -88,7 +132,10 @@ function drawCanvas(data) {
     // draw tail
     if (snake.length > snake.bodyLength) {
       context.beginPath();
-      context.moveTo(snake.x[snake.bodyLength], snake.y[snake.bodyLength]);
+      context.arc(snake.x[snake.bodyLength], snake.y[snake.bodyLength], .25, 0, 2 * Math.PI);
+      context.fillStyle = snake.tailColor;
+      context.fill();
+      context.beginPath();
       for (var i = snake.bodyLength; i < snake.length; i++) {
         context.lineTo(snake.x[i], snake.y[i]);
       }
@@ -101,7 +148,10 @@ function drawCanvas(data) {
     // draw body
     if (snake.bodyLength > 1) {
       context.beginPath();
-      context.moveTo(snake.x[1], snake.y[1]);
+      context.arc(snake.x[1], snake.y[1], .25, 0, 2 * Math.PI);
+      context.fillStyle = snake.bodyColor;
+      context.fill();
+      context.beginPath();
       for (var i = 1; i < snake.bodyLength; i++) {
         context.lineTo(snake.x[i], snake.y[i]);
       }
@@ -113,7 +163,7 @@ function drawCanvas(data) {
     }
     // draw head
     context.beginPath();
-    context.arc(snake.x[0], snake.y[0], .3, 0, 2 * Math.PI);
+    context.arc(snake.x[0], snake.y[0], .4, 0, 2 * Math.PI);
     context.fillStyle = '#ccffcc';
     context.fill();
     var theta = snake.direction * Math.PI / 2;
