@@ -10,10 +10,11 @@ setDefault();
 
 var game = false;
 var time = 0;
+var lastTurned = 0;
 var intervalID;
-var connect = new Array(capacity);
+var connect = [];
 var snakes = {};
-var deads = [];
+var dying = [];
 
 var fs = require('fs');
 var ejs = require('ejs');
@@ -42,17 +43,16 @@ io.on('connection', function(socket) {
     snakes[id] = new Snake(id);
     emitUpdate();
     switch (id) {
-      case 0: socket.emit('message', 'you <-- player0 (upper left, red)'); break;
-      case 1: socket.emit('message', 'you <-- player1 (lower right, blue)'); break;
-      case 2: socket.emit('message', 'you <-- player2 (upper right, yellow)'); break;
-      case 3: socket.emit('message', 'you <-- player3 (lower left, cyan)'); break;
+      case 0: socket.emit('message', 'host > you are player0 (upper left, red)'); break;
+      case 1: socket.emit('message', 'host > you are player1 (lower right, blue)'); break;
+      case 2: socket.emit('message', 'host > you are player2 (upper right, yellow)'); break;
+      case 3: socket.emit('message', 'host > you are player3 (lower left, cyan)'); break;
     }
     emitMessage('player'+ id +' > connect');
   }
   else {
     id = capacity;
-    emitUpdate();
-    socket.emit('message', 'you <- audience');
+    socket.emit('message', 'host > you are audience');
     emitMessage('audience > connect');
   }
 
@@ -67,51 +67,45 @@ io.on('connection', function(socket) {
       emitMessage('player'+ id +' > disconnect');
     }
     else {
-      emitUpdate();
       emitMessage('audience > disconnect');
     }
   });
 
   socket.on('turn', function(direction) {
-    if (id < capacity)
+    if (id in snakes)
       turn(snakes[id], direction);
     emitUpdate();
   });
 
   socket.on('start', function() {
-    if (!game && id < capacity) {
-      game = true;
-      time = 0;
-      intervalID = setInterval(main, waitTime * 100);
-      emitUpdate();
-      emitMessage('start');
-    }
+    if (game)
+      socket.emit('message', 'host > already started');
+    else
+      start();
+  });
+
+  socket.on('stop', function() {
+    if (game)
+      stop();
+    else
+      socket.emit('message', 'host > already stopped');
   });
 
   socket.on('reset', function() {
-    if (game) {
-      snakes = {};
-      for (var i = 0; i < capacity; i++) if (connect[i])
-        snakes[i] = new Snake(i);
-      game = false;
-      clearInterval(intervalID);
-      emitUpdate();
-      emitMessage('reset');
-    }
+    if (game)
+      stop();
+    reset();
   });
 
   socket.on('config', function(settings) {
     if (game) {
-      socket.emit('message', 'config is not available in game');
+      socket.emit('message', 'host > config is not available in game');
     }
     else {
       setSettings(settings);
-      snakes = {};
-      for (var i = 0; i < capacity; i++) if (connect[i])
-        snakes[i] = new Snake(i);
-      emitUpdate();
+      reset();
       io.sockets.emit('config', getSettings());
-      emitMessage('config changed');
+      emitMessage('host > config changed');
     }
   });
 
@@ -121,16 +115,13 @@ io.on('connection', function(socket) {
 
   socket.on('default', function() {
     if (game) {
-      socket.emit('message', 'config is not available in game');
+      socket.emit('message', 'host > config is not available in game');
     }
     else {
       setDefault();
-      snakes = {};
-      for (var i = 0; i < capacity; i++) if (connect[i])
-        snakes[i] = new Snake(i);
-      emitUpdate();
+      reset();
       io.sockets.emit('config', getSettings());
-      emitMessage('config changed to default');
+      emitMessage('host > config changed to default');
     }
   });
 
@@ -146,8 +137,26 @@ function emitUpdate() {
   io.sockets.emit('update', {size: size, snakes: snakes});
 }
 
-function emitMessage(message) {
-  io.sockets.emit('message', message);
+function start() {
+  game = true;
+  intervalID = setInterval(main, waitTime * 100);
+  emitMessage('host > start');
+}
+
+function stop() {
+  game = false;
+  clearInterval(intervalID);
+  emitMessage('host > stop');
+}
+
+function reset() {
+  time = 0;
+  lastTurned = 0;
+  snakes = {};
+  for (var i = 0; i < capacity; i++) if (connect[i])
+    snakes[i] = new Snake(i);
+  emitUpdate();
+  emitMessage('host > reset');
 }
 
 function getSettings() {
@@ -178,10 +187,14 @@ function setDefault() {
   });
 }
 
+function emitMessage(message) {
+  io.sockets.emit('message', message);
+}
+
 function main() {
   time++;
-  deads = [];
-  if (time % lengthenRate == 0)
+  dying = [];
+  if (lengthenRate > 0 && time % lengthenRate == 0)
     for (var i in snakes)
       if (snakes[i].living)
         lengthen(snakes[i]);
@@ -196,19 +209,17 @@ function main() {
     if (snakes[i].living && touch[i])
       shorten(snakes[i]);
   emitUpdate();
-  if (deads.length > 0) {
-    emitMessage('player'+ deads.join(', player') +' > dead');
-  }
+  if (dying.length > 0)
+    emitMessage('player'+ dying.join(', player') +' > dead');
   var allDead = true;
   for (var i in snakes)
     allDead &= !snakes[i].living;
   if (allDead) {
-    game = false;
-    clearInterval(intervalID);
+    emitMessage('host > all players are dead');
+    stop();
   }
 }
 
-var lastTurned = 0;
 function Snake(id) {
   this.id = id;
   this.bodyLength = initialLength;
@@ -307,7 +318,7 @@ function shorten(snake) {
   }
   if (snake.bodyLength < 2) {
     snake.living = false;
-    deads.push(snake.id);
+    dying.push(snake.id);
   }
 }
 

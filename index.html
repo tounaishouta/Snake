@@ -35,13 +35,14 @@ div#stdout {
 <canvas id="canvas"></canvas>
 <div id="sideBar">
   <input type="button" id="start" value="Start"/>
+  <input type="button" id="stop" value="Stop"/>
   <input type="button" id="reset" value="Reset"/>
   <hr/>
   <form id="config">
     <label>Size:<input type="number" id="size" min="2" max="100"/></label><br/>
-    <label>Wait time:<input type="number" id="waitTime" min="1" max="600"/></label><br/>
-    <label>Initial length:<input type="number" id="initialLength" min="2" max="10000"/></label><br/>
-    <label>Lengthen rate:<input type="number" id="lengthenRate" min="1" max="10000"/></label><br/>
+    <label>Wait time:<input type="number" id="waitTime" min="1" max="100"/></label><br/>
+    <label>Initial length:<input type="number" id="initialLength" min="2" max="100"/></label><br/>
+    <label>Lengthen rate:<input type="number" id="lengthenRate" min="0" max="100"/></label><br/>
     <label>Tail:<input type="checkbox" id="tail"/></label><br/>
     <input type="submit" value="Config"/>
     <input type="button" id="cancel" value="Cancel"/>

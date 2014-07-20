@@ -11,6 +11,8 @@ document.onkeydown = function(event) {
 
 document.getElementById('start').onclick = function() { socket.emit('start'); };
 
+document.getElementById('stop').onclick = function() { socket.emit('stop'); };
+
 document.getElementById('reset').onclick = function() { socket.emit('reset'); };
 
 document.getElementById('config').onsubmit = function(event) {
@@ -39,6 +41,11 @@ socket.on('connect', function() { writeMessage('connect'); });
 
 socket.on('disconnect', function() { writeMessage('disconnect'); });
 
+socket.on('update', function(data) {
+  drawCanvas(data);
+  window.onresize = function() { drawCanvas(data) };
+});
+
 socket.on('config', function(settings) {
   document.getElementById('size').value = settings.size;
   document.getElementById('waitTime').value = settings.waitTime;
@@ -48,17 +55,6 @@ socket.on('config', function(settings) {
 });
 
 socket.on('message', function(message) { writeMessage(message); });
-
-socket.on('update', function(data) {
-  drawCanvas(data);
-  window.onresize = function() { drawCanvas(data) };
-});
-
-function writeMessage(message) {
-  var stdout = document.getElementById('stdout');
-  stdout.innerHTML += message +'<br/>';
-  stdout.scrollTop = stdout.scrollHeight;
-}
 
 function drawCanvas(data) {
   var size = data.size;
@@ -129,4 +125,10 @@ function drawCanvas(data) {
     context.fillStyle = snake.living ? snake.bodyColor : snake.tailColor;
     context.fill();
   }
+}
+
+function writeMessage(message) {
+  var stdout = document.getElementById('stdout');
+  stdout.innerHTML += message +'<br/>';
+  stdout.scrollTop = stdout.scrollHeight;
 }
