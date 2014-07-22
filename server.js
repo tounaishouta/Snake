@@ -56,29 +56,29 @@ io.on('connection', function(socket) {
   });
 
   socket.on('turn', function(direction) {
-    for (var n in entries)
-      if (entries[n] == id)
-        turn(snakes[n], direction);
+    for (var i in entries)
+      if (entries[i] == id)
+        turn(snakes[i], direction);
     io.sockets.emit('update', getScreen());
   });
 
   socket.on('entry', function() {
     if (state == 'start') {
       var entried = false;
-      for (var n in entries)
-        if (entries[n] == id)
+      for (var i in entries)
+        if (entries[i] == id)
           entried = true;
       if (entried)
         socket.emit('message', 'host > already entried');
       else {
-        var n = 0;
-        while (n in entries)
-          n++;
-        if (n < capacity) {
-          entries[n] = id;
-          snakes[n] = new Snake(n);
+        var i = 0;
+        while (i in entries)
+          i++;
+        if (i < capacity) {
+          entries[i] = id;
+          snakes[i] = new Snake(i);
           io.sockets.emit('update', getScreen());
-          switch (n) {
+          switch (i) {
             case 0: io.sockets.emit('message', 'host > red is '+ name); break;
             case 1: io.sockets.emit('message', 'host > blue is '+ name); break;
             case 2: io.sockets.emit('message', 'host > yellow is '+ name); break;
@@ -219,13 +219,12 @@ function main() {
     if (snakes[i].living)
       touch[i] = touchWall(snakes[i]) || touchSnakes(snakes[i]);
   var dying = [];
-  for (var i in snakes) {
-    if (snakes[i].living && touch[i]) {
+  for (var i in snakes)
+    if (snakes[i].living && touch[i])
       shorten(snakes[i]);
-      if (!snakes[i].living)
-        dying.push(names[entries[i]]);
-    }
-  }
+  for (var i in snakes)
+    if (dead(snakes[i]))
+      dying.push(names[entries[i]]);
   io.sockets.emit('update', getScreen());
   if (dying.length == 1)
     io.sockets.emit('message', 'host > '+ dying[0] +' dies');
@@ -333,8 +332,6 @@ function shorten(snake) {
     snake.x[i] = snake.x[i + 1];
     snake.y[i] = snake.y[i + 1];
   }
-  if (snake.bodyLength < 2)
-    snake.living = false;
 }
 
 function lengthen(snake) {
@@ -343,7 +340,11 @@ function lengthen(snake) {
     snake.bodyLength++;
 }
 
-function kill(snake) {
-  snake.bodyLength = 1;
-  snake.living = false;
+function dead(snake) {
+  if (snake.bodyLength > 1)
+    return false;
+  else {
+    snake.living = false;
+    return true;
+  }
 }
