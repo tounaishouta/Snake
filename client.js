@@ -53,6 +53,8 @@ window.ontouchend = function(event) {
 
 window.ontouchcancel = window.ontouchend;
 
+document.getElementById('entry').onclick = function() { socket.emit('entry'); };
+
 document.getElementById('start').onclick = function() { socket.emit('start'); };
 
 document.getElementById('stop').onclick = function() { socket.emit('stop'); };
@@ -84,6 +86,10 @@ document.getElementById('chat').onsubmit = function(event) {
 socket.on('connect', function() { writeMessage('connect'); });
 
 socket.on('disconnect', function() { writeMessage('disconnect'); });
+
+socket.on('enter your name', function() {
+  socket.emit('regist my name', prompt('Enter your name.'));
+});
 
 socket.on('update', function(data) {
   drawCanvas(data);
