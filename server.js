@@ -219,12 +219,13 @@ function main() {
     if (snakes[i].living)
       touch[i] = touchWall(snakes[i]) || touchSnakes(snakes[i]);
   var dying = [];
-  for (var i in snakes)
-    if (snakes[i].living && touch[i])
+  for (var i in snakes) {
+    if (snakes[i].living && touch[i]) {
       shorten(snakes[i]);
-  for (var i in snakes)
-    if (dead(snakes[i]))
-      dying.push(names[entries[i]]);
+      if (dead(snakes[i]))
+        dying.push(names[entries[i]]);
+    }
+  }
   io.sockets.emit('update', getScreen());
   if (dying.length == 1)
     io.sockets.emit('message', 'host > '+ dying[0] +' dies');
