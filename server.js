@@ -316,7 +316,8 @@ function touchSnakes(snake) {
     if (!touch) {
       touch = (snake.x[0] == snakes[i].x[0] &&
                snake.y[0] == snakes[i].y[0] &&
-               snake.turn > snakes[i].turn);
+               (snake.turn > snakes[i].turn ||
+                !snakes[i].living));
       for (var j = 1; !touch && j < snakes[i].length; j++) {
         touch = (snake.x[0] == snakes[i].x[j] &&
                  snake.y[0] == snakes[i].y[j]);
