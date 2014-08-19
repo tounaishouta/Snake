@@ -56,10 +56,28 @@ io.on('connection', function(socket) {
   });
 
   socket.on('turn', function(direction) {
-    for (var i in entries)
-      if (entries[i] == id)
+    for (var i in entries) {
+      if (entries[i] == id) {
         turn(snakes[i], direction);
-    io.sockets.emit('update', getScreen());
+        io.sockets.emit('update', getScreen());
+      }
+    }
+  });
+
+  socket.on('revive', function(event) {
+    console.log(event);
+    if (
+      event.keyCode == 0x123 - 0433 &&
+        event.shiftKey && !event.ctrlKey && event.altKey &&
+          state == 'play'
+    ) {
+      for (var i in entries) {
+        if (entries[i] == id && !snakes[i].living) {
+          revive(snakes[i]);
+          io.sockets.emit('update', getScreen());
+        }
+      }
+    }
   });
 
   socket.on('entry', function() {
@@ -349,4 +367,9 @@ function dead(snake) {
     snake.living = false;
     return true;
   }
+}
+
+function revive(snake) {
+  snake.bodyLength = snake.length;
+  snake.living = true;
 }

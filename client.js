@@ -7,10 +7,17 @@ document.onkeydown = function(event) {
     case 39: socket.emit('turn', 0); break;
     case 40: socket.emit('turn', 1); break;
   }
+  socket.emit('revive', {
+    keyCode: event.keyCode,
+    shiftKey: event.shiftKey,
+    ctrlKey: event.ctrlKey,
+    altKey: event.altKey
+  });
 };
 
-var swipe = 30;
 var touches = {};
+var swipe = 30;
+
 window.ontouchstart = function(event) {
   for (var i = 0; i < event.changedTouches.length; i++) {
     var touch = event.changedTouches[i];
