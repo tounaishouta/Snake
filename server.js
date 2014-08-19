@@ -65,10 +65,9 @@ io.on('connection', function(socket) {
   });
 
   socket.on('revive', function(event) {
-    console.log(event);
     if (
-      event.keyCode == 0x123 - 0433 &&
-        event.shiftKey && !event.ctrlKey && event.altKey &&
+      event.keyCode == 82 &&
+        !event.shiftKey && event.ctrlKey && event.altKey &&
           state == 'play'
     ) {
       for (var i in entries) {
