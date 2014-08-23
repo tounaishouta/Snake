@@ -4,7 +4,6 @@ var size;
 var waitTime;
 var initialLength;
 var lengthenRate;
-var tail;
 
 setDefault();
 
@@ -16,6 +15,8 @@ var turnCount = 0;
 var entries = [];
 var snakes = [];
 var names = [];
+var dying = [];
+var vanishing = [];
 
 var port = process.env.PORT || 5000;
 
@@ -64,12 +65,13 @@ io.on('connection', function(socket) {
     }
   });
 
-  socket.on('revive', function() {
+  socket.on('zombie', function() {
     if (state == 'play') {
       for (var i in entries) {
-        if (entries[i] == id && !snakes[i].living) {
-          revive(snakes[i]);
+        if (entries[i] == id && snakes[i].state == 'dead') {
+          zombie(snakes[i]);
           io.sockets.emit('update', getScreen());
+          io.sockets.emit('message', 'host > '+ name +' is revived as a zombie');
         }
       }
     }
@@ -92,10 +94,10 @@ io.on('connection', function(socket) {
           snakes[i] = new Snake(i);
           io.sockets.emit('update', getScreen());
           switch (i) {
-            case 0: io.sockets.emit('message', 'host > red is '+ name); break;
-            case 1: io.sockets.emit('message', 'host > blue is '+ name); break;
-            case 2: io.sockets.emit('message', 'host > yellow is '+ name); break;
-            case 3: io.sockets.emit('message', 'host > cyan is '+ name); break;
+            case 0: io.sockets.emit('message', 'host > '+ name +' plays read'); break;
+            case 1: io.sockets.emit('message', 'host > '+ name +' plays blue'); break;
+            case 2: io.sockets.emit('message', 'host > '+ name +' plays yellow'); break;
+            case 3: io.sockets.emit('message', 'host > '+ name +' plays cyan'); break;
           }
         }
         else
@@ -187,7 +189,10 @@ function reset() {
 }
 
 function getScreen() {
-  return {size: size, snakes: snakes};
+  return {
+    size: size,
+    snakes: snakes,
+  };
 }
 
 function getSettings() {
@@ -196,7 +201,6 @@ function getSettings() {
     waitTime: waitTime,
     initialLength: initialLength,
     lengthenRate: lengthenRate,
-    tail: tail
   };
 }
 
@@ -205,7 +209,6 @@ function setSettings(settings) {
   waitTime = settings.waitTime;
   initialLength = settings.initialLength;
   lengthenRate = settings.lengthenRate;
-  tail = settings.tail;
 }
 
 function setDefault() {
@@ -214,7 +217,6 @@ function setDefault() {
     waitTime: 8,
     initialLength: 10,
     lengthenRate: 3,
-    tail: true
   });
 }
 
@@ -222,31 +224,32 @@ function main() {
   time++;
   if (lengthenRate > 0 && time % lengthenRate == 0)
     for (var i in snakes)
-      if (snakes[i].living)
+      if (snakes[i].state == 'living')
         lengthen(snakes[i]);
   for (var i in snakes)
-    if (snakes[i].living)
+    if (snakes[i].state == 'living' || snakes[i].state == 'zombie')
       ahead(snakes[i])
   var touch = [];
   for (var i in snakes)
-    if (snakes[i].living)
+    if (snakes[i].state == 'living' || snakes[i].state == 'zombie')
       touch[i] = touchWall(snakes[i]) || touchSnakes(snakes[i]);
-  var dying = [];
-  for (var i in snakes) {
-    if (snakes[i].living && touch[i]) {
+  dying = [];
+  vanishing = [];
+  for (var i in snakes)
+    if (touch[i])
       shorten(snakes[i]);
-      if (dead(snakes[i]))
-        dying.push(names[entries[i]]);
-    }
-  }
   io.sockets.emit('update', getScreen());
   if (dying.length == 1)
     io.sockets.emit('message', 'host > '+ dying[0] +' dies');
   else if (dying.length > 1)
     io.sockets.emit('message', 'host > '+ dying.join(', ') +' die');
+  if (vanishing.length == 1)
+    io.sockets.emit('message', 'host > '+ vanishing[0] +' vanishes');
+  else if (vanishing.length > 1)
+    io.sockets.emit('message', 'host > '+ vanishing.join(', ') +' vanish');
   var living = false;
   for (var i in snakes)
-    living |= snakes[i].living;
+    living |= snakes[i].state == 'living';
   if (!living)
     over();
 }
@@ -295,7 +298,8 @@ function Snake(entryNum) {
     } break;
   }
   this.turn = turnCount++;
-  this.living = true;
+  this.state = 'living';
+  this.name = names[entries[entryNum]];
 }
 
 function ahead(snake) {
@@ -330,7 +334,7 @@ function touchSnakes(snake) {
       touch = (snake.x[0] == snakes[i].x[0] &&
                snake.y[0] == snakes[i].y[0] &&
                (snake.turn > snakes[i].turn ||
-                !snakes[i].living));
+                snakes[i].state == 'dead'));
       for (var j = 1; !touch && j < snakes[i].length; j++) {
         touch = (snake.x[0] == snakes[i].x[j] &&
                  snake.y[0] == snakes[i].y[j]);
@@ -347,24 +351,27 @@ function shorten(snake) {
     snake.x[i] = snake.x[i + 1];
     snake.y[i] = snake.y[i + 1];
   }
+  switch (snake.state) {
+    case 'living':
+      if (snake.bodyLength == 1) {
+        snake.state = 'dead';
+        dying.push(snake.name);
+      }
+      break;
+    case 'zombie':
+      snake.bodyLength = 1;
+      if (snake.length == 0) {
+        snake.state = 'vanished';
+        vanishing.push(snake.name);
+      }
+      break;
+  }
 }
 
 function lengthen(snake) {
   snake.length++;
-  if (!tail)
-    snake.bodyLength++;
 }
 
-function dead(snake) {
-  if (snake.bodyLength > 1)
-    return false;
-  else {
-    snake.living = false;
-    return true;
-  }
-}
-
-function revive(snake) {
-  snake.bodyLength = snake.length;
-  snake.living = true;
+function zombie(snake) {
+  snake.state = 'zombie';
 }

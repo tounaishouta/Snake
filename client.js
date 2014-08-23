@@ -6,8 +6,7 @@ document.onkeydown = function(event) {
     case 38: socket.emit('turn', 3); break;
     case 39: socket.emit('turn', 0); break;
     case 40: socket.emit('turn', 1); break;
-    case 82: if (event.shiftKey && event.ctrlKey && event.altKey) socket.emit('revive');
-    break;
+    case 90: if (event.shiftKey && event.ctrlKey) socket.emit('zombie'); break;
   }
 };
 
@@ -71,7 +70,6 @@ document.getElementById('config').onsubmit = function(event) {
     waitTime: Number(document.getElementById('waitTime').value),
     initialLength: Number(document.getElementById('initialLength').value),
     lengthenRate: Number(document.getElementById('lengthenRate').value),
-    tail: document.getElementById('tail').checked
   });
 };
 
@@ -104,7 +102,6 @@ socket.on('config', function(settings) {
   document.getElementById('waitTime').value = settings.waitTime;
   document.getElementById('initialLength').value = settings.initialLength;
   document.getElementById('lengthenRate').value = settings.lengthenRate;
-  document.getElementById('tail').checked = settings.tail;
 });
 
 socket.on('message', function(message) { writeMessage(message); });
@@ -138,51 +135,53 @@ function drawCanvas(data) {
   context.setTransform(scale, 0, 0, scale, offsetX + scale / 2, offsetY + scale / 2);
   for (var id in snakes) {
     var snake = snakes[id];
-    // draw tail
-    if (snake.length > snake.bodyLength) {
-      context.beginPath();
-      context.arc(snake.x[snake.bodyLength], snake.y[snake.bodyLength], .25, 0, 2 * Math.PI);
-      context.fillStyle = snake.tailColor;
-      context.fill();
-      context.beginPath();
-      for (var i = snake.bodyLength; i < snake.length; i++) {
-        context.lineTo(snake.x[i], snake.y[i]);
+    if (snake.state != 'vanished') {
+      // draw tail
+      if (snake.length > snake.bodyLength) {
+        context.beginPath();
+        context.arc(snake.x[snake.bodyLength], snake.y[snake.bodyLength], .25, 0, 2 * Math.PI);
+        context.fillStyle = snake.tailColor;
+        context.fill();
+        context.beginPath();
+        for (var i = snake.bodyLength; i < snake.length; i++) {
+          context.lineTo(snake.x[i], snake.y[i]);
+        }
+        context.lineWidth = .5;
+        context.lineCap = 'round';
+        context.lineJoin = 'round';
+        context.strokeStyle = snake.tailColor;
+        context.stroke();
       }
-      context.lineWidth = .5;
-      context.lineCap = 'round';
-      context.lineJoin = 'round';
-      context.strokeStyle = snake.tailColor;
-      context.stroke();
-    }
-    // draw body
-    if (snake.bodyLength > 1) {
-      context.beginPath();
-      context.arc(snake.x[1], snake.y[1], .25, 0, 2 * Math.PI);
-      context.fillStyle = snake.bodyColor;
-      context.fill();
-      context.beginPath();
-      for (var i = 1; i < snake.bodyLength; i++) {
-        context.lineTo(snake.x[i], snake.y[i]);
+      // draw body
+      if (snake.bodyLength > 1) {
+        context.beginPath();
+        context.arc(snake.x[1], snake.y[1], .25, 0, 2 * Math.PI);
+        context.fillStyle = snake.bodyColor;
+        context.fill();
+        context.beginPath();
+        for (var i = 1; i < snake.bodyLength; i++) {
+          context.lineTo(snake.x[i], snake.y[i]);
+        }
+        context.lineWidth = .5;
+        context.lineCap = 'round';
+        context.lineJoin = 'round';
+        context.strokeStyle = snake.bodyColor;
+        context.stroke();
       }
-      context.lineWidth = .5;
-      context.lineCap = 'round';
-      context.lineJoin = 'round';
-      context.strokeStyle = snake.bodyColor;
-      context.stroke();
+      // draw head
+      context.beginPath();
+      context.arc(snake.x[0], snake.y[0], .4, 0, 2 * Math.PI);
+      context.fillStyle = '#ccffcc';
+      context.fill();
+      var theta = snake.direction * Math.PI / 2;
+      var phi = Math.PI / 6;
+      context.beginPath();
+      context.moveTo(snake.x[0], snake.y[0]);
+      context.arc(snake.x[0], snake.y[0], .4, theta + phi, theta - phi);
+      context.closePath();
+      context.fillStyle = snake.state == 'living' ? snake.bodyColor : snake.tailColor;
+      context.fill();
     }
-    // draw head
-    context.beginPath();
-    context.arc(snake.x[0], snake.y[0], .4, 0, 2 * Math.PI);
-    context.fillStyle = '#ccffcc';
-    context.fill();
-    var theta = snake.direction * Math.PI / 2;
-    var phi = Math.PI / 6;
-    context.beginPath();
-    context.moveTo(snake.x[0], snake.y[0]);
-    context.arc(snake.x[0], snake.y[0], .4, theta + phi, theta - phi);
-    context.closePath();
-    context.fillStyle = snake.living ? snake.bodyColor : snake.tailColor;
-    context.fill();
   }
 }
 
