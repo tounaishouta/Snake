@@ -6,13 +6,9 @@ document.onkeydown = function(event) {
     case 38: socket.emit('turn', 3); break;
     case 39: socket.emit('turn', 0); break;
     case 40: socket.emit('turn', 1); break;
+    case 82: if (event.shiftKey && event.ctrlKey && event.altKey) socket.emit('revive');
+    break;
   }
-  socket.emit('revive', {
-    keyCode: event.keyCode,
-    shiftKey: event.shiftKey,
-    ctrlKey: event.ctrlKey,
-    altKey: event.altKey
-  });
 };
 
 var touches = {};

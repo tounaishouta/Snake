@@ -64,12 +64,8 @@ io.on('connection', function(socket) {
     }
   });
 
-  socket.on('revive', function(event) {
-    if (
-      event.keyCode == 82 &&
-        !event.shiftKey && event.ctrlKey && event.altKey &&
-          state == 'play'
-    ) {
+  socket.on('revive', function() {
+    if (state == 'play') {
       for (var i in entries) {
         if (entries[i] == id && !snakes[i].living) {
           revive(snakes[i]);
